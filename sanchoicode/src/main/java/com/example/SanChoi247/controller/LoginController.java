@@ -122,4 +122,49 @@ public class LoginController {
             return "auth/enterOtp";
         }
     }
+
+    @GetMapping("/Login")
+    public String showLogin(Model model) {
+    return "auth/login";
+}
+
+    @PostMapping("/LoginToSystem")
+    public ResponseEntity<?> loginToSystem(@RequestParam("username") String username,
+        @RequestParam("password") String password,
+        HttpSession httpSession) throws Exception {
+    User user = loginRepo.checkLogin(username, password);
+
+    if (user == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("Invalid username or password"));
+    } else {
+        String token = jwtTokenProvider.generateToken(user);
+
+        httpSession.setAttribute("accessToken", token);
+        httpSession.setAttribute("UserAfterLogin", user);
+        httpSession.setAttribute("userRole", user.getRole());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("accessToken", token);
+        response.put("username", user.getUsername());
+        response.put("uid", user.getUid());
+        response.put("avatar", user.getAvatar());
+        response.put("name", user.getName());
+
+        String redirect = (String) httpSession.getAttribute("redirect");
+        if (redirect != null) {
+            httpSession.removeAttribute("redirect");
+            response.put("redirect", redirect);
+        } else if (user.getRole() == 'A') {
+            response.put("redirect", "/admin/dashboard");
+        } else if (user.getRole() == 'p' || user.getRole() == 'b') {
+            response.put("redirect", "/auth/banned");
+        } else {
+            response.put("redirect", "/");
+        }
+
+        return ResponseEntity.ok(response);
+    }
+}
+
 }
