@@ -167,4 +167,11 @@ public class LoginController {
     }
 }
 
+@GetMapping("/Logout")
+public String logout(HttpSession httpSession) {
+    httpSession.removeAttribute("UserAfterLogin");
+    httpSession.invalidate();
+    return "redirect:/";
+}
+
 }
