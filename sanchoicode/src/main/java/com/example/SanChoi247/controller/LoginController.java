@@ -174,4 +174,71 @@ public String logout(HttpSession httpSession) {
     return "redirect:/";
 }
 
+@PostMapping("/UserAfterLogin")
+@ResponseBody
+public ResponseEntity<?> afterLoginWithGG(HttpServletRequest request, Authentication authentication)
+        throws Exception {
+    if (authentication == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
+    }
+
+    HttpSession session = request.getSession();
+    DefaultOAuth2User oauthUser = (DefaultOAuth2User) authentication.getPrincipal();
+
+    String email = (String) oauthUser.getAttribute("email");
+    String name = (String) oauthUser.getAttribute("name");
+    String avatar = (String) oauthUser.getAttribute("picture");
+
+    User existingUser = userRepo.getUserByEmail(email);
+
+    if (existingUser == null) {
+        User newUser = createUser(email, name, avatar);
+        userRepo.addNewUser(newUser);
+        existingUser = newUser;
+    } else {
+        existingUser.setAvatar(avatar);
+        userRepo.save(existingUser);
+    }
+
+    int uid = existingUser.getUid();
+    String token = jwtTokenProvider.generateToken(existingUser);
+
+    session.setAttribute("UserAfterLogin", existingUser);
+    session.setAttribute("accessToken", token);
+    session.setAttribute("userRole", existingUser.getRole());
+
+    Map<String, Object> response = new HashMap<>();
+    response.put("accessToken", token);
+    response.put("username", existingUser.getUsername());
+    response.put("uid", uid);
+    response.put("avatar", avatar);
+    response.put("name", name);
+
+    String redirect = (String) session.getAttribute("redirect");
+    if (redirect != null) {
+        session.removeAttribute("redirect");
+        response.put("redirect", redirect);
+    } else if (existingUser.getRole() == 'A') {
+        response.put("redirect", "/admin/dashboard");
+    } else if (existingUser.getRole() == 'p' || existingUser.getRole() == 'b') {
+        response.put("redirect", "/auth/banned");
+    } else {
+        response.put("redirect", "/");
+    }
+
+    return ResponseEntity.ok(response);
+}
+
+private User createUser(String email, String name, String avatar) {
+    User newUser = new User();
+    newUser.setEmail(email);
+    newUser.setUsername(email);
+    newUser.setName(name);
+    newUser.setAvatar(avatar);
+    newUser.setPassword(new BCryptPasswordEncoder().encode("defaultPassword"));
+    newUser.setStatus(0);
+    newUser.setRole('U');
+    return newUser;
+}
+
 }
