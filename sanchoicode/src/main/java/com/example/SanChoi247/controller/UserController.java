@@ -76,4 +76,92 @@ public class UserController {
         return "user/changePassword";
     }
     //--------------------------------
+    @GetMapping("/ShowEditProfile")
+    public String showEditProfile(HttpSession httpSession, Model model) throws Exception {
+        User user = (User) httpSession.getAttribute("UserAfterLogin");
+        if (user == null) {
+            return "redirect:/login"; // Chuyển hướng về trang đăng nhập nếu chưa đăng nhập
+        }
+        User newU = userRepo.getUserById(user.getUid());
+        model.addAttribute("user", newU);
+        return "user/editProfile"; // Trả về trang chỉnh sửa hồ sơ
+    }
+    //------------------------------
+     @PostMapping(value = "/EditProfile")
+    public String editUser(
+            @RequestParam("name") String nameInput,
+            @RequestParam("phone") String phoneInput,
+            @RequestParam("email") String emailInput,
+            @RequestParam("dob") Date dobInput,
+            @RequestParam("gender") char genderInput,
+            @RequestParam(value = "ten_san", required = false) String ten_sanInput,
+            @RequestParam(value = "address", required = false) String addressInput,
+            @RequestParam(value = "img_san1", required = false) String img_san1Input,
+            @RequestParam(value = "img_san2", required = false) String img_san2Input,
+            @RequestParam(value = "img_san3", required = false) String img_san3Input,
+            @RequestParam(value = "img_san4", required = false) String img_san4Input,
+            @RequestParam(value = "img_san5", required = false) String img_san5Input,
+            Model model,
+            HttpSession httpSession) {
+    
+        User activeUser = (User) httpSession.getAttribute("UserAfterLogin");
+    
+        // Perform field validations
+        boolean hasError = false;
+        if (!isValidName(nameInput)) {
+            model.addAttribute("nameError", "Invalid name format.");
+            hasError = true;
+        }
+        if (!isValidPhone(phoneInput)) {
+            model.addAttribute("phoneError", "Invalid phone number format.");
+            hasError = true;
+        }
+        if (!isValidEmail(emailInput)) {
+            model.addAttribute("emailError", "Invalid email format.");
+            hasError = true;
+        }
+        if (dobInput.after(new Date(System.currentTimeMillis()))) {
+            model.addAttribute("dobError", "Date of birth cannot be in the future.");
+            hasError = true;
+        }
+    
+        // Return to edit profile page with errors if validation failed
+        if (hasError) {
+            return "user/editProfile";
+        }
+    
+        // Proceed with saving if validations pass
+        try {
+            userRepo.editProfile(nameInput, dobInput, genderInput, phoneInput, emailInput, activeUser.getUid());
+            activeUser.setName(nameInput);
+            activeUser.setPhone(phoneInput);
+            activeUser.setEmail(emailInput);
+            activeUser.setDob(dobInput);
+            activeUser.setGender(genderInput);
+    
+            if (activeUser.getRole() == 'C') {
+                User user = userRepo.getUserById(activeUser.getUid());
+                user.setTen_san(ten_sanInput);
+                user.setAddress(addressInput);
+                user.setImg_san1(img_san1Input);
+                user.setImg_san2(img_san2Input);
+                user.setImg_san3(img_san3Input);
+                user.setImg_san4(img_san4Input);
+                user.setImg_san5(img_san5Input);
+                userRepo.save(user);
+                httpSession.setAttribute("activeOwner", user);
+            }
+    
+            // Update session and add success message
+            activeUser = userRepo.getUserById(activeUser.getUid());
+            httpSession.setAttribute("UserAfterLogin", activeUser);
+            model.addAttribute("message", "Edited successfully!");
+    
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "An error occurred while editing your profile.");
+        }
+    
+        return "user/editProfile";
+    }
+    //------------------------------
 }
