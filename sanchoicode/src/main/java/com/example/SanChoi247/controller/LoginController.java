@@ -229,6 +229,19 @@ public ResponseEntity<?> afterLoginWithGG(HttpServletRequest request, Authentica
     return ResponseEntity.ok(response);
 }
 
+@PostMapping("/resendOtp")
+  public String resendOtp(Model model) {
+      try {
+          generatedOtp = sendOtpToMailService.sendOtpService(email);
+          model.addAttribute("success", "OTP đã được gửi lại.");
+          model.addAttribute("email", email);
+          return "auth/enterOtp";
+      } catch (RuntimeException e) {
+          model.addAttribute("error", e.getMessage());
+          return "auth/login";
+      }
+    }
+
 private User createUser(String email, String name, String avatar) {
     User newUser = new User();
     newUser.setEmail(email);
