@@ -63,4 +63,15 @@ public class UserRepo {
         String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).{8,}$";
         return password != null && password.matches(passwordPattern);
     }
+
+    public void updatePassword(int uid, String newPassword) throws Exception {
+        Class.forName(Baseconnection.nameClass);
+        Connection con = DriverManager.getConnection(Baseconnection.url, Baseconnection.username,
+                Baseconnection.password);
+        PreparedStatement ps = con.prepareStatement("UPDATE users SET password = ? WHERE uid = ?");
+        ps.setString(1, newPassword);
+        ps.setInt(2, uid);
+        ps.executeUpdate();
+        ps.close();
+    }
 }
