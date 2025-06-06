@@ -71,7 +71,7 @@ public class AdminController {
     
     @PostMapping("/admin/approveField")
     public String approveField(@RequestParam("uid") int uid, @RequestParam("approve") boolean approve) throws Exception {
-        User user = userRepo.getUserById(uid); // Lấy thông tin chi tiết của người dùng để lấy email của họ
+User user = userRepo.getUserById(uid); // Lấy thông tin chi tiết của người dùng để lấy email của họ
     
         if (approve) {
             userRepo.updateFieldStatus(uid, 4); // Phê duyệt trường bằng cách đặt trạng thái thành 4
@@ -106,7 +106,7 @@ public class AdminController {
                     "We encourage you to review your submission, make any necessary adjustments, and resubmit if you believe the field meets our guidelines. " +
                     "You can always reach out to our support team if you need further clarification or assistance.\n\n" +
                     "Thank you for your interest in SanChoi247, and we hope to see your field listed soon.\n\n" +
-                    "Best Regards,\n" +
+"Best Regards,\n" +
                     "SanChoi247 Team";
     
             emailService.sendEmail(user.getEmail(), subject, body);
@@ -147,4 +147,47 @@ public ResponseEntity<String> approveFieldOwner(@RequestParam int uid, @RequestP
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Approval failed.");
     }
 }
+@GetMapping(value = ("/ViewAllUser"))
+public String allUserPage(Model model) throws Exception {
+    ArrayList<User> users = adminRepo.getAllUser();
+    model.addAttribute("users", users);
+    model.addAttribute("status", "approve");
+    return "admin/users/view";
+}
+
+// Ban user
+@PostMapping(value = "/lockUser")
+public String lockUsers(@RequestParam("uid") int id, @RequestParam("role") char role, Model model)
+        throws Exception {
+    adminRepo.lockUser(id, role);
+    User user = userRepo.getUserById(id);
+    // Gửi email thông báo khóa tài khoản
+    String subject = "Your Sanchoi247 Account has been Locked";
+    String content = "...";
+    emailService.sendEmail(user.getEmail(), subject, content);
+    return "admin/users/view";
+}
+
+// Unban user
+@PostMapping(value = "/unlockUser")
+public String unlockUsers(@RequestParam("uid") int id, @RequestParam("role") char role, Model model)
+        throws Exception {
+    adminRepo.unlockUser(id, role);
+    User user = userRepo.getUserById(id);
+    // Gửi email thông báo mở khóa tài khoản
+    String subject = "Your Sanchoi247 Account has been Unlocked";
+    String content = "...";
+    emailService.sendEmail(user.getEmail(), subject, content);
+    return "admin/users/view";
+}
+
+// Xem danh sách user bị ban
+@GetMapping(value = ("/ViewAllBanner"))
+public String allBannerPage(Model model) throws Exception {
+    ArrayList<User> banners = adminRepo.getAllBanner();
+model.addAttribute("status", "reject");
+    model.addAttribute("users", banners);
+    return "admin/users/view";
+}
+
 }
