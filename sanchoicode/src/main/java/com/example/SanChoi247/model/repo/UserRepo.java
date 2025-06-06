@@ -423,4 +423,47 @@ public class UserRepo {
         ps.close();
     }
     
+    public List<User> findUsersByStatus(int status) throws Exception {
+        List<User> pendingFields = new ArrayList<>();
+        String sql = "SELECT uid, name, ten_san, address, img_san1, img_san2, img_san3, img_san4, img_san5 FROM users WHERE status = ?";
+        Class.forName(Baseconnection.nameClass);
+        Connection con = DriverManager.getConnection(Baseconnection.url, Baseconnection.username, Baseconnection.password);
+        PreparedStatement ps = con.prepareStatement(sql);
+        ps.setInt(1, status);
+    
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            User user = new User();
+            user.setUid(rs.getInt("uid"));
+            user.setName(rs.getString("name")); // Thêm trường name
+            user.setTen_san(rs.getString("ten_san"));
+            user.setAddress(rs.getString("address"));
+            user.setImg_san1(rs.getString("img_san1"));
+            user.setImg_san2(rs.getString("img_san2"));
+            user.setImg_san3(rs.getString("img_san3"));
+            user.setImg_san4(rs.getString("img_san4"));
+            user.setImg_san5(rs.getString("img_san5"));
+            pendingFields.add(user);
+        }
+    
+        rs.close();
+        ps.close();
+        con.close();
+        return pendingFields;
+    }
+    
+    
+    public void updateFieldStatus(int uid, int status) throws Exception {
+        String sql = "UPDATE users SET status = ? WHERE uid = ?";
+        Class.forName(Baseconnection.nameClass);
+        Connection con = DriverManager.getConnection(Baseconnection.url, Baseconnection.username, Baseconnection.password);
+        PreparedStatement ps = con.prepareStatement(sql);
+        ps.setInt(1, status);
+        ps.setInt(2, uid);
+    
+        ps.executeUpdate();
+        ps.close();
+        con.close();
+    }
+
 }
