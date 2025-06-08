@@ -113,4 +113,38 @@ public class AdminController {
         }
         return "redirect:/admin/approveField";
     }
+    @GetMapping("admin/pendingRequests")
+public ResponseEntity<List<User>> getPendingRequests() {
+    try {
+        List<User> pendingUsers = userRepo.getUsersByStatus(1); // Status 1 = pending
+        return ResponseEntity.ok(pendingUsers);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+}
+
+// Xử lý phê duyệt/từ chối
+@PostMapping("admin/approveFieldOwner")
+public ResponseEntity<String> approveFieldOwner(@RequestParam int uid, @RequestParam boolean isApproved) {
+    try {
+        userRepo.approveFieldOwnerRequest(uid, isApproved);
+        User user = userRepo.getUserById(uid);
+        
+        if (isApproved) {
+            // Gửi email chấp nhận
+            emailService.sendEmail(user.getEmail(), 
+                "Chúc mừng bạn đã trở thành Field Owner",
+                "Bạn đã trở thành Field Owner...");
+        } else {
+            // Gửi email từ chối
+            emailService.sendEmail(user.getEmail(), 
+                "Yêu cầu Field Owner không được phê duyệt",
+                "Yêu cầu của bạn không được phê duyệt...");
+        }
+        
+        return ResponseEntity.ok(statusMessage);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Approval failed.");
+    }
+}
 }
