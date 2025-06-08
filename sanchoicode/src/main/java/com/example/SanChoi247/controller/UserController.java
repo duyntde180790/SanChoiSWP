@@ -164,4 +164,27 @@ public class UserController {
         return "user/editProfile";
     }
     //------------------------------
+
+    // Hiển thị form gửi yêu cầu trở thành Field Owner
+@GetMapping("/user/requestFieldOwner")
+public String requestForm() {
+    return "user/requestFieldOwner"; // Trả về trang HTML
+}
+
+// Xử lý gửi yêu cầu trở thành Field Owner
+@PostMapping("/user/requestFieldOwner")
+public ResponseEntity<String> requestFieldOwner(HttpSession httpSession) {
+    try {
+        User user = (User) httpSession.getAttribute("UserAfterLogin"); // Lấy user từ session
+        int uid = user.getUid(); // Lấy `uid` từ user đăng nhập
+
+        userRepo.requestFieldOwner(uid); // Gửi yêu cầu phê duyệt
+        return ResponseEntity.ok("Request submitted. Waiting for admin approval.");
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Request failed.");
+    }
+}
+     //------------------------------
+
 }

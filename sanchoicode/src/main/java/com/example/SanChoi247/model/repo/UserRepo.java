@@ -466,4 +466,17 @@ public class UserRepo {
         con.close();
     }
 
+
+    //------------------------------------ request thành field owner
+    public void requestFieldOwner(int uid) throws Exception {
+        Class.forName(Baseconnection.nameClass);
+        Connection con = DriverManager.getConnection(Baseconnection.url, Baseconnection.username, Baseconnection.password);
+        PreparedStatement ps = con.prepareStatement("UPDATE users SET status = ? WHERE uid = ?");
+        ps.setInt(1, 1); // 1: Pending approval
+        ps.setInt(2, uid);
+        ps.executeUpdate();
+        ps.close();
+        con.close();
+    }
+    
 }
