@@ -71,9 +71,8 @@ public class AdminController {
     
     @PostMapping("/admin/approveField")
     public String approveField(@RequestParam("uid") int uid, @RequestParam("approve") boolean approve) throws Exception {
-User user = userRepo.getUserById(uid); // Lấy thông tin chi tiết của người dùng để lấy email của họ
-    
-        if (approve) {
+        User user = userRepo.getUserById(uid); // Lấy thông tin chi tiết của người dùng để lấy email của họ
+if (approve) {
             userRepo.updateFieldStatus(uid, 4); // Phê duyệt trường bằng cách đặt trạng thái thành 4
             // Gửi email chấp thuận
             String subject = "Congratulations! Your Field has been Approved on SanChoi247";
@@ -106,10 +105,9 @@ User user = userRepo.getUserById(uid); // Lấy thông tin chi tiết của ngư
                     "We encourage you to review your submission, make any necessary adjustments, and resubmit if you believe the field meets our guidelines. " +
                     "You can always reach out to our support team if you need further clarification or assistance.\n\n" +
                     "Thank you for your interest in SanChoi247, and we hope to see your field listed soon.\n\n" +
-"Best Regards,\n" +
+                    "Best Regards,\n" +
                     "SanChoi247 Team";
-    
-            emailService.sendEmail(user.getEmail(), subject, body);
+emailService.sendEmail(user.getEmail(), subject, body);
         }
         return "redirect:/admin/approveField";
     }
@@ -185,9 +183,29 @@ public String unlockUsers(@RequestParam("uid") int id, @RequestParam("role") cha
 @GetMapping(value = ("/ViewAllBanner"))
 public String allBannerPage(Model model) throws Exception {
     ArrayList<User> banners = adminRepo.getAllBanner();
-model.addAttribute("status", "reject");
+    model.addAttribute("status", "reject");
     model.addAttribute("users", banners);
-    return "admin/users/view";
+return "admin/users/view";
+}
+@PostMapping(value = "/stadiumEditPageAdmin")
+public String eventEditPage(@RequestParam("stadiumId") int stadiumId, Model model, HttpSession httpSession)
+        throws Exception {
+    httpSession.setAttribute("stadiumIdEdit", stadiumId);
+    User user = userRepo.getUserById(stadiumId);
+    model.addAttribute("stadiumEdit", user);
+    return "admin/san/editStadiumAdmin";
+}
+@GetMapping(value = ("/ViewAllStadiumsActive"))
+public String allStadiumsOngoingPage(Model model) throws Exception {
+    List<User> stadiums = adminRepo.getAllActiveOwner();
+    model.addAttribute("stadiums", stadiums);
+    return "admin/san/stadiums-active";
 }
 
+@GetMapping(value = "/searchEvents")
+public String searchEvents(@RequestParam("query") String query, Model model) throws Exception {
+    List<User> user = userRepo.searchStadium(query);
+    model.addAttribute("stadiums", user);
+    return "admin/san/stadiums-active";
+}
 }
