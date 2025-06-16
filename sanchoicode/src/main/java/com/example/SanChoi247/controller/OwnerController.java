@@ -118,4 +118,13 @@ System.out.println("Error: Image file is empty.");
             return "owner/addSmallField";
         }
     }
+    @GetMapping("/ViewUserBooking")
+    public String viewUserBooking(Model model, HttpSession httpSession) throws Exception {
+        User user = (User) httpSession.getAttribute("UserAfterLogin");
+        ArrayList<Booking> bookings = ownerRepo.getAllUserBooking(user.getUid());
+        model.addAttribute("booking", bookings);
+        return "owner/viewBookingOwner";
+    }
+
+
 }
