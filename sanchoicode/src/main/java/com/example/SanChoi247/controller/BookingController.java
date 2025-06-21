@@ -61,23 +61,7 @@ public class BookingController {
         booking.setTotalprice(scheduleBooking.getPrice());
         booking.setStatus(Booking.PaymentStatus.PENDING);
 
-        // Chưa có dữ liệu vnpayData, để trống ban đầu
-        booking.setVnpayData(null); // Hoặc "" nếu cần chuỗi trống
 
-        // Lưu booking với trạng thái PENDING
-        int id = bookingRepo.pushBooking(booking);
-        httpSession.setAttribute("booking_id", id);
-
-        // Tạo URL VNPay để thanh toán
-        String vnpayUrl = VNPayConfig.generateVnpayUrl(String.valueOf(id),
-                String.valueOf((long) (scheduleBooking.getPrice())));
-
-        // Cập nhật trạng thái scheduleBooking thành "pending"
-        scheduleBookingRepo.updateScheduleBookingStatus(scheduleBooking.getBooking_id(), "pending");
-
-        // Chuyển hướng người dùng tới trang thanh toán VNPay
-        return "redirect:" + vnpayUrl;
-    }
 
     // @GetMapping("/vnpay_return")
     // public String vnpayReturn(@RequestParam Map<String, String> requestParams, Model model, HttpSession httpSession)
