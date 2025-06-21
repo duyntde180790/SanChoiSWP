@@ -61,66 +61,82 @@ public class BookingController {
         booking.setTotalprice(scheduleBooking.getPrice());
         booking.setStatus(Booking.PaymentStatus.PENDING);
 
+        // Chưa có dữ liệu vnpayData, để trống ban đầu
+        booking.setVnpayData(null); // Hoặc "" nếu cần chuỗi trống
 
+        // Lưu booking với trạng thái PENDING
+        int id = bookingRepo.pushBooking(booking);
+        httpSession.setAttribute("booking_id", id);
 
-    // @GetMapping("/vnpay_return")
-    // public String vnpayReturn(@RequestParam Map<String, String> requestParams, Model model, HttpSession httpSession)
-    //         throws NumberFormatException, Exception {
-    //     // Extract payment result from requestParams
-    //     String vnpResponseCode = requestParams.get("vnp_ResponseCode");
-    //     String txnRef = requestParams.get("vnp_TxnRef");
+        // Tạo URL VNPay để thanh toán
+        String vnpayUrl = VNPayConfig.generateVnpayUrl(String.valueOf(id),
+                String.valueOf((long) (scheduleBooking.getPrice())));
 
-    //     // Kiểm tra txnRef
-    //     if (txnRef == null || txnRef.isEmpty()) {
-    //         model.addAttribute("error", "Transaction reference not found.");
-    //         return "public/result"; // Trả về trang lỗi
-    //     }
+        // Cập nhật trạng thái scheduleBooking thành "pending"
+        scheduleBookingRepo.updateScheduleBookingStatus(scheduleBooking.getBooking_id(), "pending");
 
-    //     // Find booking by transaction reference
-    //     int id = (int) httpSession.getAttribute("booking_id");
-    //     Booking booking = bookingRepo.findById(id);
+        // Chuyển hướng người dùng tới trang thanh toán VNPay
+        return "redirect:" + vnpayUrl;
+    }
 
-    //     if (booking == null) {
-    //         model.addAttribute("error", "Booking not found for transaction reference: " + txnRef);
-    //         return "public/result"; // Trả về trang lỗi
-    //     }
+    @GetMapping("/vnpay_return")
+    public String vnpayReturn(@RequestParam Map<String, String> requestParams, Model model, HttpSession httpSession)
+            throws NumberFormatException, Exception {
+        // Extract payment result from requestParams
+        String vnpResponseCode = requestParams.get("vnp_ResponseCode");
+        String txnRef = requestParams.get("vnp_TxnRef");
 
-    //     // Chuyển đổi requestParams thành chuỗi JSON hợp lệ
-    //     ObjectMapper objectMapper = new ObjectMapper();
-    //     String vnpayDataJson = objectMapper.writeValueAsString(requestParams); // Chuyển map thành chuỗi JSON hợp lệ
-    //     booking.setVnpayData(vnpayDataJson); // Lưu chuỗi JSON vào vnpayData
+        // Kiểm tra txnRef
+        if (txnRef == null || txnRef.isEmpty()) {
+            model.addAttribute("error", "Transaction reference not found.");
+            return "public/result"; // Trả về trang lỗi
+        }
 
-    //     if ("00".equals(vnpResponseCode)) { // Thanh toán thành công
-    //         booking.setStatus(Booking.PaymentStatus.SUCCESS);
-    //         model.addAttribute("message", "Đặt sân thành công!");
-    //         model.addAttribute("error", "Chúc mừng! Bạn đã thanh toán thành công.");
-    //         model.addAttribute("success", true); // Thêm thuộc tính thành công
+        // Find booking by transaction reference
+        int id = (int) httpSession.getAttribute("booking_id");
+        Booking booking = bookingRepo.findById(id);
 
-    //         // Cập nhật trạng thái lịch đặt sân thành "Booked"
-    //         ScheduleBooking scheduleBooking = scheduleBookingRepo
-    //                 .findById(booking.getScheduleBooking().getBooking_id());
-    //         scheduleBookingRepo.updateScheduleBookingStatus(scheduleBooking.getBooking_id(), "Booked");
-    //     } else { // Thanh toán thất bại
-    //         booking.setStatus(Booking.PaymentStatus.FAILED);
-    //         model.addAttribute("message", "Đặt sân thất bại!");
-    //         model.addAttribute("error", "Rất tiếc, đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại sau.");
-    //         model.addAttribute("success", false); // Thêm thuộc tính thất bại
+        if (booking == null) {
+            model.addAttribute("error", "Booking not found for transaction reference: " + txnRef);
+            return "public/result"; // Trả về trang lỗi
+        }
 
-    //         // Cập nhật trạng thái lịch đặt sân thành "available"
-    //         ScheduleBooking scheduleBooking = scheduleBookingRepo
-    //                 .findById(booking.getScheduleBooking().getBooking_id());
-    //         scheduleBookingRepo.updateScheduleBookingStatus(scheduleBooking.getBooking_id(), "available");
-    //     }
+        // Chuyển đổi requestParams thành chuỗi JSON hợp lệ
+        ObjectMapper objectMapper = new ObjectMapper();
+        String vnpayDataJson = objectMapper.writeValueAsString(requestParams); // Chuyển map thành chuỗi JSON hợp lệ
+        booking.setVnpayData(vnpayDataJson); // Lưu chuỗi JSON vào vnpayData
 
-    //     // Lưu trạng thái mới của booking
-    //     bookingRepo.save(booking);
+        if ("00".equals(vnpResponseCode)) { // Thanh toán thành công
+            booking.setStatus(Booking.PaymentStatus.SUCCESS);
+            model.addAttribute("message", "Đặt sân thành công!");
+            model.addAttribute("error", "Chúc mừng! Bạn đã thanh toán thành công.");
+            model.addAttribute("success", true); // Thêm thuộc tính thành công
 
-    //     // Thêm thông tin booking vào model
-    //     model.addAttribute("booking", booking);
+            // Cập nhật trạng thái lịch đặt sân thành "Booked"
+            ScheduleBooking scheduleBooking = scheduleBookingRepo
+                    .findById(booking.getScheduleBooking().getBooking_id());
+            scheduleBookingRepo.updateScheduleBookingStatus(scheduleBooking.getBooking_id(), "Booked");
+        } else { // Thanh toán thất bại
+            booking.setStatus(Booking.PaymentStatus.FAILED);
+            model.addAttribute("message", "Đặt sân thất bại!");
+            model.addAttribute("error", "Rất tiếc, đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại sau.");
+            model.addAttribute("success", false); // Thêm thuộc tính thất bại
 
-    //     // Redirect hoặc trả về view thông báo cho người dùng về trạng thái thanh toán
-    //     return "public/result"; // Đảm bảo rằng template này tồn tại
-    // }
+            // Cập nhật trạng thái lịch đặt sân thành "available"
+            ScheduleBooking scheduleBooking = scheduleBookingRepo
+                    .findById(booking.getScheduleBooking().getBooking_id());
+            scheduleBookingRepo.updateScheduleBookingStatus(scheduleBooking.getBooking_id(), "available");
+        }
+
+        // Lưu trạng thái mới của booking
+        bookingRepo.save(booking);
+
+        // Thêm thông tin booking vào model
+        model.addAttribute("booking", booking);
+
+        // Redirect hoặc trả về view thông báo cho người dùng về trạng thái thanh toán
+        return "public/result"; // Đảm bảo rằng template này tồn tại
+    }
 
     @GetMapping("/ShowBookingByUserId")
     public String showOrderByUserId(HttpSession httpSession, Model model) throws Exception {
