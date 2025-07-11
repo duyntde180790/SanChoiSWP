@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food & Drinks Management - SanChoi247</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        .food-image {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: cover;
+        }
+        .category-food {
+            background-color: #e6f7ff;
+        }
+        .category-drink {
+            background-color: #fff1e6;
+        }
+        .card {
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+    
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Food & Drinks Management</h2>
+            <a href="/owner/food-drinks/add" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New
+            </a>
+        </div>
+        
+        <div class="alert alert-success" th:if="${param.success == 'added'}">
+            Food/drink added successfully!
+        </div>
+        
+        <div class="alert alert-success" th:if="${param.success == 'updated'}">
+            Food/drink updated successfully!
+        </div>
+        
+        <div class="alert alert-danger" th:if="${param.error == 'unauthorized'}">
+            You don't have permission to access this item!
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-end">
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary active" id="showAll">All</button>
+                        <button class="btn btn-outline-primary" id="showFood">Food</button>
+                        <button class="btn btn-outline-primary" id="showDrinks">Drinks</button>
+                        <button class="btn btn-outline-primary" id="showAvailable">Available</button>
+                        <button class="btn btn-outline-primary" id="showUnavailable">Unavailable</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row" id="foodItems">
+            <div th:if="${foodItems == null || foodItems.empty}" class="col-12 text-center my-5">
+                <div class="alert alert-info">
+                    <p>You don't have any food or drinks yet. Add your first item!</p>
+                    <a href="/owner/food-drinks/add" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New
+                    </a>
+                </div>
+            </div>
+            
+            <div th:each="item : ${foodItems}" th:class="'col-md-4 food-item ' + ${item.category == 'food' ? 'food' : 'drink'} + ' ' + ${item.available ? 'available' : 'unavailable'}">
+                <div th:class="'card ' + ${item.category == 'food' ? 'category-food' : 'category-drink'}" style="height: 100%;">
+                    <div class="card-header d-flex justify-content-between">
+                        <span th:text="${item.category == 'food' ? 'Food' : 'Drink'}" 
+                              class="badge" th:classappend="${item.category == 'food' ? 'text-bg-primary' : 'text-bg-warning'}"></span>
+                        <span th:if="${item.available}" class="badge text-bg-success">Available</span>
+                        <span th:unless="${item.available}" class="badge text-bg-danger">Unavailable</span>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <img th:if="${item.image != null}" th:src="${item.image}" class="food-image" alt="Food Image">
+                            <img th:unless="${item.image != null}" src="https://via.placeholder.com/100x100?text=No+Image" class="food-image" alt="Default Food Image">
+                        </div>
+                        
+                        <h5 class="card-title" th:text="${item.name}"></h5>
+                        <p class="card-text" th:text="${item.description}"></p>
+                        <p class="card-text fw-bold text-danger" th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT') + ' VND'}"></p>
+                    </div>
+                    
+                    <div class="card-footer d-flex justify-content-between">
+                        <a th:href="@{'/owner/food-drinks/edit/' + ${item.food_id}}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <button class="btn btn-sm btn-danger delete-btn" th:attr="data-id=${item.food_id}, data-name=${item.name}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <span id="foodItemName"></span>?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Confirm Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Delete functionality
+            let foodIdToDelete;
+            
+            $('.delete-btn').on('click', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                foodIdToDelete = id;
+                
+                $('#foodItemName').text(name);
+                $('#deleteModal').modal('show');
+            });
+            
+            $('#confirmDelete').on('click', function() {
+                $.ajax({
+                    url: '/owner/food-drinks/delete/' + foodIdToDelete,
+                    type: 'POST',
+                    success: function() {
+                        $('#deleteModal').modal('hide');
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error occurred: ' + xhr.responseText);
+                    }
+                });
+            });
+            
+            // Filtering functionality
+            $('#showAll').click(function() {
+                $('.food-item').show();
+                $('.btn-outline-primary').removeClass('active');
+                $(this).addClass('active');
+            });
+            
+            $('#showFood').click(function() {
+                $('.food-item').hide();
+                $('.food').show();
+                $('.btn-outline-primary').removeClass('active');
+                $(this).addClass('active');
+            });
+            
+            $('#showDrinks').click(function() {
+                $('.food-item').hide();
+                $('.drink').show();
+                $('.btn-outline-primary').removeClass('active');
+                $(this).addClass('active');
+            });
+            
+            $('#showAvailable').click(function() {
+                $('.food-item').hide();
+                $('.available').show();
+                $('.btn-outline-primary').removeClass('active');
+                $(this).addClass('active');
+            });
+            
+            $('#showUnavailable').click(function() {
+                $('.food-item').hide();
+                $('.unavailable').show();
+                $('.btn-outline-primary').removeClass('active');
+                $(this).addClass('active');
+            });
+            
+            // Search functionality
+            $('#searchInput').on('keyup', function() {
+                const value = $(this).val().toLowerCase();
+                $('.food-item').filter(function() {
+                    const cardText = $(this).find('.card-title, .card-text').text().toLowerCase();
+                    $(this).toggle(cardText.indexOf(value) > -1);
+                });
+            });
+            
+            $('#searchButton').click(function() {
+                const value = $('#searchInput').val().toLowerCase();
+                $('.food-item').filter(function() {
+                    const cardText = $(this).find('.card-title, .card-text').text().toLowerCase();
+                    $(this).toggle(cardText.indexOf(value) > -1);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html> 
