@@ -254,4 +254,105 @@ private User createUser(String email, String name, String avatar) {
     return newUser;
 }
 
+    /*---------------------BLOG--------------------- */
+    @GetMapping("/blog")
+    public String showCreatePostForm(Model model, HttpSession session) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+        if (currentUser != null) {
+            model.addAttribute("userId", currentUser.getUid()); // Thêm userId vào model
+            model.addAttribute("userRole", currentUser.getRole()); // Truyền userRole vào model
+        }
+        // Tạo đối tượng Post mới để binding với form
+        model.addAttribute("post", new Post());
+
+        // Lấy danh sách các bài viết đã có cùng với bình luận để hiển thị
+        List<Post> posts = postService.getAllPosts();
+        model.addAttribute("posts", posts);
+
+        return "user/createPost"; // Trả về trang createPost.html
+    }
+
+    @PostMapping("/posts")
+    public String createPost(@ModelAttribute Post post, HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        post.setAuthorId(currentUser.getUid());
+        post.setAuthorName(currentUser.getName());
+        postService.save(post);
+
+        List<Post> posts = postService.getAllPosts();
+        model.addAttribute("posts", posts);
+        model.addAttribute("post", new Post());
+        model.addAttribute("userId", currentUser.getUid());
+        model.addAttribute("userRole", currentUser.getRole()); // Thêm userRole vào model
+
+        return "user/createPost";
+    }
+
+    @PostMapping("/comments")
+    public String addComment(@RequestParam("postId") Long postId, @RequestParam("content") String content,
+            HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        // Tạo và lưu bình luận mới
+        Comment comment = new Comment();
+        comment.setAuthorId(currentUser.getUid());
+        comment.setAuthorName(currentUser.getName());
+        comment.setContent(content);
+        comment.setPost(new Post(postId)); // Gán bình luận cho bài viết
+
+        postService.saveComment(comment);
+
+        // Lấy lại danh sách bài viết và các bình luận sau khi thêm bình luận
+        List<Post> posts = postService.getAllPosts();
+        model.addAttribute("posts", posts);
+
+        return "redirect:/blog"; // Chuyển hướng về trang blog
+    }
+
+    @PostMapping("/comments/edit")
+    public ResponseEntity<?> editComment(@RequestParam("commentId") Long commentId,
+            @RequestParam("content") String content,
+            HttpSession session) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not logged in");
+        }
+
+        Comment comment = postService.getCommentById(commentId);
+        if (comment.getAuthorId() != currentUser.getUid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized to edit this comment");
+        }
+
+        comment.setContent(content);
+        postService.saveComment(comment);
+
+        return ResponseEntity.ok("Comment edited successfully");
+    }
+
+    @PostMapping("/comments/delete")
+    public ResponseEntity<?> deleteComment(@RequestParam("commentId") Long commentId, HttpSession session) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not logged in");
+        }
+
+        Comment comment = postService.getCommentById(commentId);
+
+        // Cho phép admin hoặc tác giả của bình luận xóa bình luận
+        if (currentUser.getRole() == 'A' || comment.getAuthorId() == currentUser.getUid()) {
+            postService.deleteComment(commentId);
+            return ResponseEntity.ok("Comment deleted successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized to delete this comment");
+        }
+    }
+    /*---------------------BLOG--------------------- */
+
 }
