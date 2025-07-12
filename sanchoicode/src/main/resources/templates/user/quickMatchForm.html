@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghép đấu nhanh - SanChoi247</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .quick-match-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .error {
+            color: red;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .opponent-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .opponent-info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="quick-match-container">
+        <h1>Ghép đấu nhanh</h1>
+        
+        <!-- Hiển thị thông tin đối thủ -->
+        <div class="opponent-info" th:if="${opponentPlayer}">
+            <h3>Thông tin đối thủ</h3>
+            <p><strong>Tên:</strong> <span th:text="${opponentPlayer.name}"></span></p>
+            <p><strong>Số điện thoại:</strong> <span th:text="${opponentPlayer.phone}"></span></p>
+            <p><strong>Email:</strong> <span th:text="${opponentPlayer.email}"></span></p>
+            <p><strong>Trình độ:</strong> <span th:text="${opponentPlayer.level}"></span></p>
+            <p><strong>Mục tiêu:</strong> <span th:text="${opponentPlayer.goal}"></span></p>
+            <p><strong>Môn thể thao:</strong> <span th:text="${opponentPlayer.sport}"></span></p>
+            <p><strong>Chế độ chơi:</strong> <span th:text="${opponentPlayer.mode}"></span></p>
+            <p><strong>Thời gian:</strong> <span th:text="${opponentPlayer.timeFrame}"></span></p>
+            <p><strong>Địa điểm:</strong> <span th:text="${opponentPlayer.location}"></span></p>
+            <p><strong>Hình thức chơi:</strong> <span th:text="${opponentPlayer.playType}"></span></p>
+        </div>
+
+        <form th:action="@{/saveQuickMatch}" method="post" th:object="${playerInfo}" onsubmit="return validateForm()">
+            <!-- Thông tin cá nhân -->
+            <div class="form-group">
+                <label for="name">Họ và tên</label>
+                <input type="text" id="name" th:field="*{name}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="age">Tuổi</label>
+                <input type="number" id="age" th:field="*{age}" required min="1">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Số điện thoại</label>
+                <input type="tel" id="phone" th:field="*{phone}" required pattern="[0-9]{10}">
+                <div id="phoneError" class="error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" th:field="*{email}" required>
+                <div id="emailError" class="error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="gender">Giới tính</label>
+                <select id="gender" th:field="*{gender}" required>
+                    <option value="">Chọn giới tính</option>
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                </select>
+            </div>
+
+            <!-- Thông tin trận đấu -->
+            <div class="form-group">
+                <label for="level">Trình độ</label>
+                <select id="level" th:field="*{level}" required>
+                    <option value="">Chọn trình độ</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="pro">Pro</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="goal">Mục tiêu</label>
+                <select id="goal" th:field="*{goal}" required>
+                    <option value="">Chọn mục tiêu</option>
+                    <option value="exchange">Giao lưu</option>
+                    <option value="compete">Thi đấu, cạnh tranh</option>
+                </select>
+            </div>
+
+            <!-- Thêm các trường ẩn để lưu thông tin từ đối thủ -->
+            <input type="hidden" id="startTime" name="startTime" th:value="${opponentPlayer != null ? #strings.substring(opponentPlayer.timeFrame, 0, #strings.indexOf(opponentPlayer.timeFrame, '-')) : ''}">
+            <input type="hidden" id="endTime" name="endTime" th:value="${opponentPlayer != null ? #strings.substring(opponentPlayer.timeFrame, #strings.indexOf(opponentPlayer.timeFrame, '-') + 1) : ''}">
+            <input type="hidden" id="location" name="location" th:value="${opponentPlayer != null ? opponentPlayer.location : ''}">
+            <input type="hidden" id="sport" name="sport" th:value="${opponentPlayer != null ? opponentPlayer.sport : ''}">
+            <input type="hidden" id="mode" name="mode" th:value="${opponentPlayer != null ? opponentPlayer.mode : ''}">
+            <input type="hidden" id="playType" name="playType" th:value="${opponentPlayer != null ? opponentPlayer.playType : ''}">
+
+            <button type="submit" class="button">Xác nhận ghép đấu</button>
+        </form>
+    </div>
+
+    <script>
+        function validateForm() {
+            const formData = {
+                name: document.getElementById('name').value,
+                age: document.getElementById('age').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                gender: document.getElementById('gender').value,
+                level: document.getElementById('level').value,
+                goal: document.getElementById('goal').value
+            };
+
+            // Reset error messages
+            document.getElementById('phoneError').textContent = '';
+            document.getElementById('emailError').textContent = '';
+
+            // Validate phone number format
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(formData.phone)) {
+                document.getElementById('phoneError').textContent = 'Số điện thoại phải có 10 chữ số';
+                return false;
+            }
+
+            // Validate email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.email)) {
+                document.getElementById('emailError').textContent = 'Email không hợp lệ';
+                return false;
+            }
+
+            // Validate age
+            const age = parseInt(formData.age);
+            if (isNaN(age) || age <= 0) {
+                alert('Vui lòng nhập tuổi hợp lệ (lớn hơn 0)');
+                return false;
+            }
+
+            return true;
+        }
+    </script>
+</body>
+</html> 
