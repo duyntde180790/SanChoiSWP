@@ -208,4 +208,21 @@ public String searchEvents(@RequestParam("query") String query, Model model) thr
     model.addAttribute("stadiums", user);
     return "admin/san/stadiums-active";
 }
+
+@GetMapping(value = "admin/dashboard")
+public String dashboardPage(Model model) throws Exception {
+    AdminStatistics statistics = adminRepo.getStatisticsForAdmin();
+    List<TableAdminStatistics> stadiumRevenues = adminRepo.getFieldRevenues();
+    List<Double> monthlyRevenue = adminRepo.getMonthlyRevenueForAdmin();
+    List<Double> dailyRevenue = adminRepo.getDailyRevenueForAdmin();
+    List<TableAdminStatistics> sortedStadiumRevenues = stadiumRevenues.stream()
+            .sorted(Comparator.comparingDouble(TableAdminStatistics::getRevenue).reversed())
+            .collect(Collectors.toList());
+
+    model.addAttribute("statisticsOfAdmin", statistics);
+    model.addAttribute("stadiumRevenues", sortedStadiumRevenues);
+    model.addAttribute("monthlyRevenue", monthlyRevenue);
+    model.addAttribute("dailyRevenue", dailyRevenue);
+    return "admin/dashboard";
+}
 }
