@@ -126,5 +126,20 @@ System.out.println("Error: Image file is empty.");
         return "owner/viewBookingOwner";
     }
 
+    @GetMapping(value = "owner/dashboard")
+public String ownerDashboardPage(Model model, HttpSession httpSession) throws Exception {
+    User user = (User) httpSession.getAttribute("UserAfterLogin");
+    OwnerStatistics statistics = ownerRepo.getStatisticsForOwner(user.getUid());
+    List<TableOwnerStatistics> stadiumRevenues = ownerRepo.getFieldRevenues(user.getUid());
+    List<Double> monthlyRevenue = ownerRepo.getMonthlyRevenueForOwner(user.getUid());
+    List<Double> dailyRevenue = ownerRepo.getDailyRevenueForOwner(user.getUid());
+
+    model.addAttribute("statisticsOfOwner", statistics);
+    model.addAttribute("stadiumRevenues", stadiumRevenues);
+    model.addAttribute("monthlyRevenue", monthlyRevenue);
+    model.addAttribute("dailyRevenue", dailyRevenue);
+    return "owner/ownerDashboard";
+}
+
 
 }
