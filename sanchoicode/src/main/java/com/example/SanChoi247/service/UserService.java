@@ -46,5 +46,7 @@ public class UserService {
             return false; // Trả về false nếu có lỗi
         }
     }
-
+    public List<String> getAllTenSan() {
+    return userRepository.findAllTenSan();
+}
 }  
