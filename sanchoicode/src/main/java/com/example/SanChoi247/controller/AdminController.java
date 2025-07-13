@@ -208,20 +208,4 @@ public String searchEvents(@RequestParam("query") String query, Model model) thr
     model.addAttribute("stadiums", user);
     return "admin/san/stadiums-active";
 }
-@GetMapping(value = "admin/dashboard")
-public String dashboardPage(Model model) throws Exception {
-    // Lấy thống kê tổng quan
-    AdminStatistics statistics = adminRepo.getStatisticsForAdmin();
-    // Lấy doanh thu từng sân
-    List<TableAdminStatistics> stadiumRevenues = adminRepo.getFieldRevenues();
-    // Lấy doanh thu theo tháng và ngày
-    List<Double> monthlyRevenue = adminRepo.getMonthlyRevenueForAdmin();
-    List<Double> dailyRevenue = adminRepo.getDailyRevenueForAdmin();
-    
-    model.addAttribute("statisticsOfAdmin", statistics);
-    model.addAttribute("stadiumRevenues", sortedStadiumRevenues);
-    model.addAttribute("monthlyRevenue", monthlyRevenue);
-    model.addAttribute("dailyRevenue", dailyRevenue);
-    return "admin/dashboard";
-}
 }
