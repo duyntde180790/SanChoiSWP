@@ -314,6 +314,45 @@ private User createUser(String email, String name, String avatar) {
         return "redirect:/blog"; // Chuyển hướng về trang blog
     }
 
+    @PostMapping("/comments/edit")
+    public ResponseEntity<?> editComment(@RequestParam("commentId") Long commentId,
+            @RequestParam("content") String content,
+            HttpSession session) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not logged in");
+        }
+
+        Comment comment = postService.getCommentById(commentId);
+        if (comment.getAuthorId() != currentUser.getUid()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized to edit this comment");
+        }
+
+        comment.setContent(content);
+        postService.saveComment(comment);
+
+        return ResponseEntity.ok("Comment edited successfully");
+    }
+
+    @PostMapping("/comments/delete")
+    public ResponseEntity<?> deleteComment(@RequestParam("commentId") Long commentId, HttpSession session) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not logged in");
+        }
+
+        Comment comment = postService.getCommentById(commentId);
+
+        // Cho phép admin hoặc tác giả của bình luận xóa bình luận
+        if (currentUser.getRole() == 'A' || comment.getAuthorId() == currentUser.getUid()) {
+            postService.deleteComment(commentId);
+            return ResponseEntity.ok("Comment deleted successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Unauthorized to delete this comment");
+        }
+    }
     /*---------------------BLOG--------------------- */
 
 }
