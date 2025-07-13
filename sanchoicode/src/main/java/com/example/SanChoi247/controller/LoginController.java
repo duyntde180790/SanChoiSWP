@@ -8,11 +8,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.ui.Model;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import javax.servlet.http.HttpSession;
 import org.springframework.web.server.ResponseStatusException;
 
 // TODO: Adjust these imports to match your actual package structure
 import com.example.SanChoi247.model.User;
+import com.example.SanChoi247.model.entity.Post;
 import com.example.SanChoi247.dto.SignUpRequest;
 import com.example.SanChoi247.dto.ErrorResponse;
 import com.example.SanChoi247.dto.SuccessResponse;
@@ -291,6 +297,73 @@ private User createUser(String email, String name, String avatar) {
         model.addAttribute("userRole", currentUser.getRole()); // Thêm userRole vào model
 
         return "user/createPost";
+    }
+        @PostMapping("/posts/delete")
+    public String deletePost(@RequestParam("postId") Long postId, HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Post post = postService.getPostById(postId);
+        if (post == null || (currentUser.getRole() != 'A' && post.getAuthorId() != currentUser.getUid())) {
+            return "redirect:/error";
+        }
+
+        postService.delete(postId);
+
+        List<Post> posts = postService.getAllPosts();
+        model.addAttribute("posts", posts);
+        model.addAttribute("post", new Post());
+        model.addAttribute("userId", currentUser.getUid());
+        model.addAttribute("userRole", currentUser.getRole()); // Truyền userId vào model
+
+        return "user/createPost";
+    }
+
+    @GetMapping("/posts/edit")
+    public String editPost(@RequestParam("postId") Long postId, HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Post post = postService.getPostById(postId);
+
+        // Chỉ cho phép người dùng chỉnh sửa bài viết của chính họ
+        if (post.getAuthorId() != currentUser.getUid()) {
+            return "redirect:/error"; // hoặc trang thông báo lỗi
+        }
+
+        model.addAttribute("post", post); // Truyền thông tin bài viết vào model để binding trong form
+        return "user/editPost"; // Trả về trang chỉnh sửa bài viết
+    }
+
+    @PostMapping("/posts/update")
+    public String updatePost(@RequestParam("postId") Long postId,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            HttpSession session, Model model) {
+        User currentUser = (User) session.getAttribute("UserAfterLogin");
+
+        if (currentUser == null) {
+            return "redirect:/login";
+        }
+
+        Post post = postService.getPostById(postId);
+
+        // Chỉ cho phép người dùng chỉnh sửa bài viết của chính họ
+        if (post.getAuthorId() != currentUser.getUid()) {
+            return "redirect:/error"; // hoặc trang thông báo lỗi
+        }
+
+        post.setTitle(title);
+        post.setContent(content);
+        postService.save(post);
+
+        return "redirect:/blog"; // Chuyển hướng lại trang blog sau khi cập nhật
     }
 
     @PostMapping("/comments")
